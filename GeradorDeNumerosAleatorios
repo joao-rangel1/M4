@@ -1,0 +1,26 @@
+public class GeradorDeNumerosAleatorios {
+    private long anterior;
+    private final long a;
+    private final long c;
+    private final long M;
+
+    public GeradorDeNumerosAleatorios(long semente, long a, long c, long M) {
+        this.anterior = semente;
+        this.a = a;
+        this.c = c;
+        this.M = M;
+    }
+
+    public double proximoAleatorio() {
+        anterior = (a * anterior + c) % M;
+        return (double) anterior / M;
+    }
+
+    public static void main(String[] args) {
+        GeradorDeNumerosAleatorios gna = new GeradorDeNumerosAleatorios(12345, 1103515245L, 12345L, (1L << 31));
+        System.out.println("Números pseudoaleatórios gerados:");
+        for (int i = 0; i < 10; i++) {
+            System.out.println(gna.proximoAleatorio());
+        }
+    }
+}
