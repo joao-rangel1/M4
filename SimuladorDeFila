@@ -1,0 +1,91 @@
+import java.util.LinkedList;
+import java.util.Queue;
+
+public class SimuladorDeFila {
+    private final int servidores;
+    private final int capacidade;
+    private final GeradorDeNumerosAleatorios rng;
+    private final Queue<Double> fila;
+    private int servidoresOcupados;
+    private double tempo;
+    private int perdas;
+    private double ultimoTempoEvento;
+    private static final int CONTADOR_EVENTOS = 100000;
+
+    public SimuladorDeFila(int servidores, int capacidade, long semente) {
+        this.servidores = servidores;
+        this.capacidade = capacidade;
+        this.rng = new GeradorDeNumerosAleatorios(semente, 1103515245L, 12345L, (1L << 31));
+        this.fila = new LinkedList<>();
+        this.servidoresOcupados = 0;
+        this.tempo = 0.0;
+        this.perdas = 0;
+        this.ultimoTempoEvento = 0.0;
+    }
+
+    private double gerarTempo(double min, double max) {
+        return rng.proximoAleatorio() * (max - min) + min;
+    }
+
+    private void processarChegada(double chegadaMin, double chegadaMax) {
+        tempo += gerarTempo(chegadaMin, chegadaMax);
+        if (fila.size() < capacidade) {
+            fila.add(tempo);
+            if (servidoresOcupados < servidores) {
+                servidoresOcupados++;
+            }
+        } else {
+            perdas++;
+        }
+    }
+
+    private void processarSaida(double atendimentoMin, double atendimentoMax) {
+        if (!fila.isEmpty()) {
+            tempo += gerarTempo(atendimentoMin, atendimentoMax);
+            fila.poll();
+            if (fila.size() < servidores) {
+                servidoresOcupados--;
+            }
+        }
+    }
+
+    public void simular(double chegadaMin, double chegadaMax, double atendimentoMin, double atendimentoMax) {
+        double[] tempos = new double[capacidade + 1];
+        int contador = CONTADOR_EVENTOS;
+
+        while (contador > 0) {
+            double tempoDecorrido = tempo - ultimoTempoEvento;
+            tempos[Math.min(fila.size(), capacidade)] += tempoDecorrido;
+            ultimoTempoEvento = tempo;
+
+            if (fila.isEmpty() || servidoresOcupados == servidores) {
+                processarChegada(chegadaMin, chegadaMax);
+            } else {
+                processarSaida(atendimentoMin, atendimentoMax);
+            }
+            contador--;
+        }
+
+        double tempoTotal = 0.0;
+        for (double t : tempos) {
+            tempoTotal += t;
+        }
+        for (int i = 0; i < tempos.length; i++) {
+            System.out.printf("%d: %.2f (%.2f%%)%n", i, tempos[i], (tempos[i] / tempoTotal) * 100);
+        }
+        System.out.printf("Clientes perdidos: %d%n", perdas);
+        System.out.printf("Tempo total da simulação: %.2f%n", tempo);
+    }
+
+    public static void main(String[] args) {
+        // Simulação G/G/1/5: Um servidor, capacidade 5, chegadas 2-5, atendimento 3-5
+        System.out.println("Simulação G/G/1/5");
+        SimuladorDeFila simulador1 = new SimuladorDeFila(1, 5, 12345);
+        simulador1.simular(2, 5, 3, 5);
+
+        // Simulação G/G/2/5: Dois servidores, capacidade 5, chegadas 2-5, atendimento 3-5
+        System.out.println("\nSimulação G/G/2/5");
+        SimuladorDeFila simulador2 = new SimuladorDeFila(2, 5, 12345);
+        simulador2.simular(2, 5, 3, 5);
+    }
+}
